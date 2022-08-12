@@ -24,6 +24,11 @@ contract FundMe
     event Launch(uint256 id, address indexed creator, uint256 goal, uint32 startAt, uint32 endAt);
 
     /**
+     * @dev Emitted when a campaign is cancelled by the creator of that campaign
+     */
+    event Cancel(uint256 id);
+
+    /**
      * @dev Stores the data of each campaign. Notice the use of uint32 instead
      * of uint256, uint32 can hold times up to about 100 years from now in Unix time.
      * We don't need more bits than 32.
@@ -83,7 +88,13 @@ contract FundMe
 
     function cancel(uint256 _id) external
     {
-
+        Campaign memory campaign = campaigns[_id];
+        // make sure that someone trying to cancel a campaign is the creator of that campaign
+        require(msg.sender == campaign.creator, "not creator");
+        // check that the campaign has not started already
+        require(block.timestamp < campaign.startAt, "campaign already started");
+        delete campaigns[_id];
+        emit Cancel(_id);
     }
 
     function pledge(uint256 _id, uint256 _amount) external
