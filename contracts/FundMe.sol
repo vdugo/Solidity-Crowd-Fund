@@ -81,4 +81,29 @@ contract FundMe
         emit Launch(count, msg.sender, _goal, _startAt, _endAt);
     }
 
+    function cancel(uint256 _id) external
+    {
+
+    }
+
+    function pledge(uint256 _id, uint256 _amount) external
+    {
+        
+    }
+
+    function unpledge(uint256 _id, uint256 _amount) external
+    {
+
+    }
+
+    function claim(uint256 _id) external
+    {
+
+    }
+
+    function refund(uint256 _id) external
+    {
+
+    }
+
 }
