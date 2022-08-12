@@ -85,7 +85,11 @@ contract FundMe
 
         emit Launch(count, msg.sender, _goal, _startAt, _endAt);
     }
-
+    /**
+     * @dev Cancels a campaign if the creator of that campaign calls this function
+     * also, can only be cancelled if the campaign has not started yet.
+     * @param _id The id of the campaign to be cancelled
+     */
     function cancel(uint256 _id) external
     {
         Campaign memory campaign = campaigns[_id];
