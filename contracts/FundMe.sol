@@ -35,6 +35,11 @@ contract FundMe
     event Pledge(uint256 indexed id, address indexed donor, uint256 amount);
 
     /**
+     * @dev Emitted when a `donor` unpledges `amount` tokens from campaign with id `id`.
+     */
+    event Unpledge(uint256 indexed id, address indexed donor, uint256 amount);
+
+    /**
      * @dev Stores the data of each campaign. Notice the use of uint32 instead
      * of uint256, uint32 can hold times up to about 100 years from now in Unix time.
      * We don't need more bits than 32.
@@ -129,10 +134,24 @@ contract FundMe
 
         emit Pledge(_id, msg.sender, _amount);
     }
-
+    /**
+     * @dev If the campaign has not ended, then donors can choose to unpledge
+     * any amount of tokens from that campaign.
+     */
     function unpledge(uint256 _id, uint256 _amount) external
     {
+        // we need to use storage because we will be updating the
+        // campaign struct of the campaign with _id
+        Campaign storage campaign = campaigns[_id];
+        // donors shouldn't be able to unpledge from a campaign that has ended
+        require(block.timestamp <= campaign.endAt, "campaign has ended");
+        // check that the donor has enough tokens pledged
+        require(pledgedAmount[_id][msg.sender] >= _amount);
 
+        campaign.pledged -= amount;
+        pledgedAmount[_id][msg.sender] -= _amount;
+        token.transfer(msg.sender, _amount);
+        emit Unpledge(_id, msg.sender, _amount);
     }
 
     function claim(uint256 _id) external
