@@ -46,6 +46,12 @@ contract FundMe
     event Claim(uint256 id);
 
     /**
+     * @dev Emitted when a `donor` receives a refund of `amount` from campaign with id `id`.
+     *  This will only work if a campaign goal amount was not reached.
+     */
+    event Refund(uint256 indexed id, address indexed donor, uint256 amount);
+
+    /**
      * @dev Stores the data of each campaign. Notice the use of uint32 instead
      * of uint256, uint32 can hold times up to about 100 years from now in Unix time.
      * We don't need more bits than 32.
@@ -154,7 +160,7 @@ contract FundMe
         // check that the donor has enough tokens pledged
         require(pledgedAmount[_id][msg.sender] >= _amount);
 
-        campaign.pledged -= amount;
+        campaign.pledged -= _amount;
         pledgedAmount[_id][msg.sender] -= _amount;
         token.transfer(msg.sender, _amount);
         emit Unpledge(_id, msg.sender, _amount);
@@ -180,10 +186,28 @@ contract FundMe
 
         emit Claim(_id);
     }
-
+    /**
+     * If the campaign was unsuccessful, that is, the total amount pledged < goal,
+     * then donors will be able to get a refund.
+     */
     function refund(uint256 _id) external
     {
+        Campaign storage campaign = campaigns[_id];
+        // check that the campaign has ended
+        require(block.timestamp > campaign.endAt, "campaign has not ended");
+        // check that the total amount pledged to this campaign is < goal
+        // if this is true then the campaign did not reach its funding goal,
+        // so donors are entitled to a refund.
+        require(campaign.pledged < campaign.goal, "pledged < goal");
 
+        // get the amount that the donor has pledged
+        uint256 balance = pledgedAmount[_id][msg.sender];
+        // reset that amount to 0
+        pledgedAmount[_id][msg.sender] = 0;
+        // transfer that balance back to the donor
+        token.transfer(msg.sender, balance);
+
+        emit Refund(_id, msg.sender, balance);
     }
 
 }
