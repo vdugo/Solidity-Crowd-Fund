@@ -24,9 +24,15 @@ contract FundMe
     event Launch(uint256 id, address indexed creator, uint256 goal, uint32 startAt, uint32 endAt);
 
     /**
-     * @dev Emitted when a campaign is cancelled by the creator of that campaign
+     * @dev Emitted when a campaign is cancelled by the creator of that campaign.
      */
     event Cancel(uint256 id);
+    /**
+     * @dev Emitted when a `donor` pledges `amount` tokens to campaign with id `id`.
+     * Here we are using indexed for id because many donors will be able to pledge to
+     * the same campaign. Also for donor because the same donor can pledge to many campaigns.
+     */
+    event Pledge(uint256 indexed id, address indexed donor, uint256 amount);
 
     /**
      * @dev Stores the data of each campaign. Notice the use of uint32 instead
@@ -100,10 +106,28 @@ contract FundMe
         delete campaigns[_id];
         emit Cancel(_id);
     }
-
+    /**
+     * @dev Once a campaign starts, donors will be able to pledge tokens to the
+     * campaign. 
+     */
     function pledge(uint256 _id, uint256 _amount) external
     {
-        
+        // we need to use storage because we will be updating the
+        // campaign struct of the campaign with _id
+        Campaign storage campaign = campaigns[_id];
+        // require that the campaign has started
+        require(block.timestamp >= campaign.startAt, "campaign not started");
+        // require that the campaign has not ended
+        require(block.timestamp <= campaign.endAt, "campaign has ended");
+
+        campaign.pledged += _amount;
+        // need to keep track of how many tokens a donor has pledged using 
+        // pledgedAmount mapping in case the campaign was unsuccessful
+        pledgedAmount[_id][msg.sender] += _amount;
+        // transfer the tokens from the donor to this contract for the amount of tokens
+        token.transferFrom(msg.sender, address(this), _amount);
+
+        emit Pledge(_id, msg.sender, _amount);
     }
 
     function unpledge(uint256 _id, uint256 _amount) external
