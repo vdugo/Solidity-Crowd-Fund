@@ -40,6 +40,12 @@ contract FundMe
     event Unpledge(uint256 indexed id, address indexed donor, uint256 amount);
 
     /**
+     * @dev Emitted when the creator of a campaign successfully claims the tokens after
+     * a campaign has ended.
+     */
+    event Claim(uint256 id);
+
+    /**
      * @dev Stores the data of each campaign. Notice the use of uint32 instead
      * of uint256, uint32 can hold times up to about 100 years from now in Unix time.
      * We don't need more bits than 32.
@@ -153,10 +159,26 @@ contract FundMe
         token.transfer(msg.sender, _amount);
         emit Unpledge(_id, msg.sender, _amount);
     }
-
+    /**
+     * @dev Once a campaign goal is reached, that is, the total amount pledged
+     * to that campaign is >= goal, then the campaign create is able to claim the
+     * tokens for that campaign.
+     */
     function claim(uint256 _id) external
     {
+        Campaign storage campaign = campaigns[_id];
+        require(msg.sender == campaign.creator, "not creator");
+        // check that the campaign has ended
+        require(block.timestamp > campaign.endAt, "campaign has not ended");
+        // check that the total amount pledged to this campaign is >= goal
+        require(campaign.pledged >= campaign.goal, "pledged < goal");
+        // check that claim has not already been called
+        require(!campaign.claimed, "claimed");
 
+        campaign.claimed = true;
+        token.transfer(msg.sender, campaign.pledged);
+
+        emit Claim(_id);
     }
 
     function refund(uint256 _id) external
