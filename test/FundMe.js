@@ -24,6 +24,8 @@ describe('FundMe Unit Tests', async () =>
 
     let deployer, donor
 
+    let transaction
+
     let testStartBlock
 
     beforeEach(async () =>
@@ -55,19 +57,19 @@ describe('FundMe Unit Tests', async () =>
         it('rejects an invalid starting time', async () =>
         {
             let currentTime = await getCurrentTime()
-            await expect(fundMe.launch(GOAL, currentTime - 1, currentTime + 10000)).to.be.reverted
+            await expect(fundMe.launch(GOAL, currentTime - 1, currentTime + 10000)).to.be.revertedWith('start at < current time')
         })
 
         it('rejects an invalid ending time', async () =>
         {
             let currentTime = await getCurrentTime()
-            await expect(fundMe.launch(GOAL, currentTime + 10, currentTime - 10)).to.be.reverted
+            await expect(fundMe.launch(GOAL, currentTime + 10, currentTime - 10)).to.be.revertedWith('end at < start at')
         })
 
         it('enforces time limit of 90 days on how long the campaign can last', async () =>
         {
             let currentTime = await getCurrentTime()
-            await expect(fundMe.launch(GOAL, currentTime + 10, currentTime + NINETY_DAYS_IN_SECONDS + 10)).to.be.reverted
+            await expect(fundMe.launch(GOAL, currentTime + 10, currentTime + NINETY_DAYS_IN_SECONDS + 10)).to.be.revertedWith('end at > max duration')
         })
 
         it('increments the count state variable', async () =>
@@ -100,6 +102,58 @@ describe('FundMe Unit Tests', async () =>
         {
             let currentTime = await getCurrentTime()
             expect(await fundMe.launch(GOAL, currentTime + 10, currentTime + 10000)).to.emit('Launch')
+        })
+    })
+
+    describe('cancel', () => 
+    {
+        it('only lets the campaign creator cancel', async () =>
+        {
+            let currentTime = await getCurrentTime()
+            await fundMe.launch(GOAL, currentTime + 10, currentTime + 10000)
+
+            let count = await fundMe.count()
+
+            await expect(fundMe.connect(donor).cancel(count)).to.be.revertedWith('not creator')
+        })
+
+        it('only allows cancellation if the campaign has not started yet', async () =>
+        {
+            let currentTime = await getCurrentTime()
+            await fundMe.launch(GOAL, currentTime + 10, currentTime + 10000)
+
+            let count = await fundMe.count()
+
+            await network.provider.send("evm_increaseTime", [3600])
+
+            await expect(fundMe.cancel(count)).to.be.revertedWith('campaign already started')
+        })
+
+        it('deletes the campaign struct in the campaigns mapping', async () =>
+        {
+            let currentTime = await getCurrentTime()
+            await fundMe.launch(GOAL, currentTime + 10, currentTime + 10000)
+
+            let count = await fundMe.count()
+            await fundMe.cancel(count)
+
+            const campaign = await fundMe.campaigns(count)
+
+            assert(campaign.creator.toString().startsWith('0x'))
+            assert(campaign.goal.toString() === '0')
+            assert(campaign.pledged.toString() === '0')
+            assert(campaign.startAt.toString() === '0')
+            assert(campaign.endAt.toString() === '0')
+            assert(campaign.claimed === false)
+        })
+
+        it('emits a Cancel event', async () =>
+        {
+            let currentTime = await getCurrentTime()
+            await fundMe.launch(GOAL, currentTime + 10, currentTime + 10000)
+
+            let count = await fundMe.count()
+            expect(await fundMe.cancel(count)).to.emit('Cancel')
         })
     })
 })
