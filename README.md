@@ -29,3 +29,5 @@ $ npm install
 
 ### 4. Run Tests
 `$ npx hardhat test`
+
+![alt text](FundMeTests.png)
