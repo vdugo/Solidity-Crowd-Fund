@@ -198,7 +198,7 @@ contract FundMe
         // check that the total amount pledged to this campaign is < goal
         // if this is true then the campaign did not reach its funding goal,
         // so donors are entitled to a refund.
-        require(campaign.pledged < campaign.goal, "pledged < goal");
+        require(campaign.pledged < campaign.goal, "pledged amount reached goal");
 
         // get the amount that the donor has pledged
         uint256 balance = pledgedAmount[_id][msg.sender];
