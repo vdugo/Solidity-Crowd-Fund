@@ -166,8 +166,8 @@ contract FundMe
         emit Unpledge(_id, msg.sender, _amount);
     }
     /**
-     * @dev Once a campaign goal is reached, that is, the total amount pledged
-     * to that campaign is >= goal, then the campaign create is able to claim the
+     * @dev Once a campaign goal is reached, that is, if the total amount pledged
+     * to that campaign is >= goal, then the campaign creator is able to claim the
      * tokens for that campaign.
      */
     function claim(uint256 _id) external
