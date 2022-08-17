@@ -158,7 +158,7 @@ contract FundMe
         // donors shouldn't be able to unpledge from a campaign that has ended
         require(block.timestamp <= campaign.endAt, "campaign has ended");
         // check that the donor has enough tokens pledged
-        require(pledgedAmount[_id][msg.sender] >= _amount);
+        require(pledgedAmount[_id][msg.sender] >= _amount, "not enough pledged");
 
         campaign.pledged -= _amount;
         pledgedAmount[_id][msg.sender] -= _amount;
